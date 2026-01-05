@@ -268,22 +268,27 @@ with tab1:
             # Statistics
             st.markdown("### 📊 Detection Statistics")
 
-            # Count detections
-            detections = defaultdict(int)
+            # Count detections with improved logic
+            helmet_count = 0
+            no_helmet_count = 0
+            rider_count = 0
+
             if results[0].boxes is not None:
                 for cls_id in results[0].boxes.cls.tolist():
-                    class_name = model.names[int(cls_id)]
-                    detections[class_name] += 1
+                    class_name = model.names[int(cls_id)].lower()
+
+                    # Improved helmet detection logic
+                    if "helmet" in class_name and "no" not in class_name and "without" not in class_name:
+                        helmet_count += 1
+                        rider_count += 1
+                    elif "no helmet" in class_name or "without helmet" in class_name or "no-helmet" in class_name:
+                        no_helmet_count += 1
+                        rider_count += 1
+                    elif any(x in class_name for x in ["rider", "person", "motorcycle", "bike"]):
+                        rider_count += 1
 
             # Display stats in cards
-            total_detections = sum(detections.values())
-
-            if total_detections > 0:
-                # Helmet stats
-                helmet_count = detections.get('helmet', 0) + detections.get('with helmet', 0)
-                no_helmet_count = detections.get('no helmet', 0) + detections.get('without helmet', 0)
-                rider_count = detections.get('rider', 0) + detections.get('person', 0) + detections.get('motorcycle', 0)
-
+            if rider_count > 0 or helmet_count > 0 or no_helmet_count > 0:
                 col_a, col_b, col_c = st.columns(3)
                 with col_a:
                     st.markdown(f"""
@@ -324,12 +329,12 @@ with tab1:
                     st.toast("✅ Safe riding detected!", icon="🪖")
                 else:
                     st.markdown(
-                        "<div class='alert alert-info'>ℹ️ No helmet detections found in the image.</div>",
+                        "<div class='alert alert-info'>ℹ️ Riders detected but helmet status unclear.</div>",
                         unsafe_allow_html=True
                     )
             else:
                 st.markdown(
-                    "<div class='alert alert-info'>ℹ️ No objects detected in the image.</div>",
+                    "<div class='alert alert-info'>ℹ️ No traffic participants detected in the image.</div>",
                     unsafe_allow_html=True
                 )
 
@@ -424,15 +429,15 @@ with tab2:
                     # Run detection
                     results = model(frame, conf=conf_threshold)
 
-                    # Count detections in this frame
+                    # Count detections in this frame with improved logic
                     if results[0].boxes is not None:
                         for cls_id in results[0].boxes.cls.tolist():
                             class_name = model.names[int(cls_id)].lower()
-                            if 'helmet' in class_name and 'no' not in class_name and 'without' not in class_name:
+                            if "helmet" in class_name and "no" not in class_name and "without" not in class_name:
                                 total_helmet += 1
-                            elif 'no helmet' in class_name or 'without helmet' in class_name:
+                            elif "no helmet" in class_name or "without helmet" in class_name or "no-helmet" in class_name:
                                 total_no_helmet += 1
-                            elif any(x in class_name for x in ['rider', 'person', 'motorcycle']):
+                            elif any(x in class_name for x in ["rider", "person", "motorcycle", "bike"]):
                                 total_riders += 1
 
                     # Annotate frame
