@@ -49,6 +49,15 @@ def load_model():
 
 model = load_model()
 
+# ---------------- CONFIDENCE SLIDER ----------------
+confidence_threshold = st.slider(
+    "Detection Confidence Threshold",
+    min_value=0.1,
+    max_value=1.0,
+    value=0.5,
+    step=0.05
+)
+
 # ---------------- INPUT TYPE ----------------
 option = st.radio(
     "Select input type",
@@ -69,14 +78,30 @@ if option == "Image Upload":
         results = model(img_array)
         annotated = results[0].plot()
 
-        st.image(annotated, caption="Detection Result", use_container_width=True)
+        st.image(
+            annotated,
+            caption="Detection Result",
+            use_container_width=True
+        )
 
-        classes = results[0].boxes.cls.tolist() if results[0].boxes else []
+        helmet_detected = False
 
-        if 0 in classes:   # change class ID if required
-            st.error("🚨 ALERT: Helmet NOT detected")
-        else:
+        if results[0].boxes is not None:
+            for box in results[0].boxes:
+                cls = int(box.cls[0])
+                conf = float(box.conf[0])
+
+                # ⚠️ CHANGE CLASS ID IF YOUR MODEL DIFFERS
+                # Assumption:
+                # class 0 -> No Helmet
+                # class 1 -> Helmet
+                if cls == 1 and conf >= confidence_threshold:
+                    helmet_detected = True
+
+        if helmet_detected:
             st.success("✅ Helmet detected")
+        else:
+            st.error("🚨 ALERT: Helmet NOT detected")
 
 # ---------------- VIDEO UPLOAD ----------------
 if option == "Video Upload":
@@ -90,8 +115,9 @@ if option == "Video Upload":
         tfile.write(uploaded_video.read())
 
         cap = cv2.VideoCapture(tfile.name)
-
         stframe = st.empty()
+
+        helmet_found = False
 
         while cap.isOpened():
             ret, frame = cap.read()
@@ -101,7 +127,24 @@ if option == "Video Upload":
             results = model(frame)
             annotated = results[0].plot()
 
-            stframe.image(annotated, channels="BGR", use_container_width=True)
+            if results[0].boxes is not None:
+                for box in results[0].boxes:
+                    cls = int(box.cls[0])
+                    conf = float(box.conf[0])
+
+                    if cls == 1 and conf >= confidence_threshold:
+                        helmet_found = True
+
+            stframe.image(
+                annotated,
+                channels="BGR",
+                use_container_width=True
+            )
 
         cap.release()
         os.unlink(tfile.name)
+
+        if helmet_found:
+            st.success("✅ Helmet detected in video")
+        else:
+            st.error("🚨 ALERT: Helmet NOT detected in video")
