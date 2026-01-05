@@ -174,7 +174,7 @@ with st.sidebar:
 
     # Model Info
     st.subheader("Model Information")
-    st.info("Using YOLOv8 model trained for helmet detection")
+    st.info("Using YOLOv5 model trained for helmet detection")
 
     # Confidence Threshold
     conf_threshold = st.slider(
@@ -203,7 +203,7 @@ st.markdown("""
 <div class="hero">
     <h1>🪖 Advanced AI Helmet Detection System</h1>
     <p>
-        State-of-the-art deep learning traffic surveillance system using YOLOv8 for real-time helmet violation detection.
+        State-of-the-art deep learning traffic surveillance system using YOLOv5 for real-time helmet violation detection.
         Perfect for Smart City applications and road safety enforcement.
     </p>
 </div>
@@ -531,6 +531,6 @@ with tab2:
 st.markdown("---")
 st.markdown("""
 <div style='text-align: center; opacity: 0.7;'>
-    <p>🪖 Advanced Helmet Detection System | Powered by YOLOv8 & Streamlit</p>
+    <p>🪖 Advanced Helmet Detection System | Powered by YOLOv5 & Streamlit</p>
 </div>
 """, unsafe_allow_html=True)
