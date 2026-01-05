@@ -6,68 +6,131 @@ import tempfile
 import cv2
 import os
 
-# ---------------- PAGE CONFIG ----------------
+# ================= PAGE CONFIG =================
 st.set_page_config(
-    page_title="Helmet Detection System",
+    page_title="AI Helmet Detection System",
     page_icon="🪖",
     layout="wide"
 )
 
-# ---------------- CUSTOM CSS ----------------
+# ================= ADVANCED UI CSS =================
 st.markdown("""
 <style>
-body {
-    background-color: #0b1c2d;
+
+/* -------- GLOBAL -------- */
+body, .stApp {
+    background: linear-gradient(135deg, #0b1c2d, #020617);
+    color: white;
+    font-family: 'Segoe UI', sans-serif;
 }
-.stApp {
-    background-color: #0b1c2d;
+
+/* -------- HEADER -------- */
+.hero {
+    padding: 40px;
+    border-radius: 20px;
+    background: linear-gradient(135deg, #0f172a, #020617);
+    box-shadow: 0 20px 40px rgba(0,0,0,0.5);
+    margin-bottom: 30px;
 }
-h1, h2, h3, p, label {
-    color: white !important;
+.hero h1 {
+    font-size: 48px;
+    font-weight: 800;
 }
-.stButton button {
-    background-color: #38bdf8;
-    color: black;
-    border-radius: 8px;
+.hero p {
+    font-size: 18px;
+    opacity: 0.85;
 }
+
+/* -------- CARD -------- */
+.card {
+    background: #020617;
+    border-radius: 18px;
+    padding: 25px;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.4);
+    margin-bottom: 25px;
+}
+
+/* -------- FILE UPLOADER -------- */
 .stFileUploader {
-    background-color: #112d4e;
-    padding: 10px;
-    border-radius: 10px;
+    background: #020617;
+    padding: 20px;
+    border-radius: 15px;
+    border: 1px solid #1e293b;
 }
+
+/* -------- BUTTON -------- */
+.stButton button {
+    background: linear-gradient(135deg, #38bdf8, #0ea5e9);
+    color: black;
+    font-weight: 700;
+    border-radius: 12px;
+    padding: 10px 20px;
+}
+
+/* -------- ALERT BANNER -------- */
+.alert {
+    padding: 18px;
+    border-radius: 14px;
+    font-size: 18px;
+    font-weight: 700;
+    text-align: center;
+    margin-top: 20px;
+}
+.alert-danger {
+    background: linear-gradient(135deg, #7f1d1d, #dc2626);
+}
+.alert-success {
+    background: linear-gradient(135deg, #064e3b, #22c55e);
+}
+
+/* -------- TOAST FIX -------- */
+div[data-testid="stToast"] {
+    background-color: #38bdf8 !important;
+}
+div[data-testid="stToast"] * {
+    color: black !important;
+    font-weight: 800;
+}
+
 </style>
 """, unsafe_allow_html=True)
 
-# ---------------- TITLE ----------------
-st.title("🪖 AI-Based Helmet Detection System")
-st.write("Upload an **image or video** to detect helmet usage")
+# ================= HERO SECTION =================
+st.markdown("""
+<div class="hero">
+    <h1>🪖 AI-Based Helmet Detection System</h1>
+    <p>
+        Real-time computer vision system to detect helmet usage using deep learning (YOLO).
+        Designed for smart traffic monitoring and road safety enforcement.
+    </p>
+</div>
+""", unsafe_allow_html=True)
 
-# ---------------- LOAD MODEL ----------------
+# ================= LOAD MODEL =================
 @st.cache_resource
 def load_model():
     return YOLO("best.pt")
 
 model = load_model()
 
-# ---------------- CONFIDENCE SLIDER ----------------
-confidence_threshold = st.slider(
-    "Detection Confidence Threshold",
-    min_value=0.1,
-    max_value=1.0,
-    value=0.5,
-    step=0.05
-)
-
-# ---------------- INPUT TYPE ----------------
+# ================= INPUT TYPE =================
+st.markdown("<div class='card'>", unsafe_allow_html=True)
 option = st.radio(
-    "Select input type",
-    ("Image Upload", "Video Upload")
+    "Select Input Type",
+    ["Image Upload", "Video Upload"],
+    horizontal=True
 )
+st.markdown("</div>", unsafe_allow_html=True)
 
-# ---------------- IMAGE UPLOAD ----------------
+# =====================================================
+# ================= IMAGE UPLOAD ======================
+# =====================================================
 if option == "Image Upload":
+
+    st.markdown("<div class='card'>", unsafe_allow_html=True)
+
     uploaded_image = st.file_uploader(
-        "Upload Image",
+        "Upload Traffic Image",
         type=["jpg", "jpeg", "png"]
     )
 
@@ -78,35 +141,48 @@ if option == "Image Upload":
         results = model(img_array)
         annotated = results[0].plot()
 
-        st.image(
-            annotated,
-            caption="Detection Result",
-            use_container_width=True
-        )
+        st.image(annotated, caption="Detection Output", use_container_width=True)
 
         helmet_detected = False
+        no_helmet_detected = False
 
         if results[0].boxes is not None:
-            for box in results[0].boxes:
-                cls = int(box.cls[0])
-                conf = float(box.conf[0])
+            for cls_id in results[0].boxes.cls.tolist():
+                class_name = model.names[int(cls_id)].lower()
 
-                # ⚠️ CHANGE CLASS ID IF YOUR MODEL DIFFERS
-                # Assumption:
-                # class 0 -> No Helmet
-                # class 1 -> Helmet
-                if cls == 1 and conf >= confidence_threshold:
+                if "without" in class_name or "no helmet" in class_name:
+                    no_helmet_detected = True
+                elif "helmet" in class_name:
                     helmet_detected = True
 
-        if helmet_detected:
-            st.success("✅ Helmet detected")
-        else:
-            st.error("🚨 ALERT: Helmet NOT detected")
+        if no_helmet_detected:
+            st.markdown(
+                "<div class='alert alert-danger'>🚨 ALERT: Rider without Helmet Detected</div>",
+                unsafe_allow_html=True
+            )
+            st.toast("🚨 Helmet NOT detected!", icon="🚨")
 
-# ---------------- VIDEO UPLOAD ----------------
+        elif helmet_detected:
+            st.markdown(
+                "<div class='alert alert-success'>✅ Helmet Detected — Rider is Safe</div>",
+                unsafe_allow_html=True
+            )
+            st.toast("✅ Helmet detected", icon="🪖")
+
+        else:
+            st.info("ℹ️ No rider detected")
+
+    st.markdown("</div>", unsafe_allow_html=True)
+
+# =====================================================
+# ================= VIDEO UPLOAD ======================
+# =====================================================
 if option == "Video Upload":
+
+    st.markdown("<div class='card'>", unsafe_allow_html=True)
+
     uploaded_video = st.file_uploader(
-        "Upload Video",
+        "Upload Traffic Video",
         type=["mp4", "avi", "mov"]
     )
 
@@ -117,8 +193,6 @@ if option == "Video Upload":
         cap = cv2.VideoCapture(tfile.name)
         stframe = st.empty()
 
-        helmet_found = False
-
         while cap.isOpened():
             ret, frame = cap.read()
             if not ret:
@@ -126,14 +200,6 @@ if option == "Video Upload":
 
             results = model(frame)
             annotated = results[0].plot()
-
-            if results[0].boxes is not None:
-                for box in results[0].boxes:
-                    cls = int(box.cls[0])
-                    conf = float(box.conf[0])
-
-                    if cls == 1 and conf >= confidence_threshold:
-                        helmet_found = True
 
             stframe.image(
                 annotated,
@@ -144,7 +210,4 @@ if option == "Video Upload":
         cap.release()
         os.unlink(tfile.name)
 
-        if helmet_found:
-            st.success("✅ Helmet detected in video")
-        else:
-            st.error("🚨 ALERT: Helmet NOT detected in video")
+    st.markdown("</div>", unsafe_allow_html=True)
