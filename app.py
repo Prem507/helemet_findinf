@@ -13,18 +13,16 @@ st.set_page_config(
     layout="wide"
 )
 
-# ================= ADVANCED UI CSS =================
+# ================= PREMIUM UI CSS =================
 st.markdown("""
 <style>
-
-/* -------- GLOBAL -------- */
 body, .stApp {
     background: linear-gradient(135deg, #0b1c2d, #020617);
     color: white;
     font-family: 'Segoe UI', sans-serif;
 }
 
-/* -------- HEADER -------- */
+/* HERO */
 .hero {
     padding: 40px;
     border-radius: 20px;
@@ -33,7 +31,7 @@ body, .stApp {
     margin-bottom: 30px;
 }
 .hero h1 {
-    font-size: 48px;
+    font-size: 46px;
     font-weight: 800;
 }
 .hero p {
@@ -41,7 +39,7 @@ body, .stApp {
     opacity: 0.85;
 }
 
-/* -------- CARD -------- */
+/* CARD */
 .card {
     background: #020617;
     border-radius: 18px;
@@ -50,15 +48,15 @@ body, .stApp {
     margin-bottom: 25px;
 }
 
-/* -------- FILE UPLOADER -------- */
+/* FILE UPLOADER */
 .stFileUploader {
     background: #020617;
-    padding: 20px;
-    border-radius: 15px;
+    padding: 18px;
+    border-radius: 14px;
     border: 1px solid #1e293b;
 }
 
-/* -------- BUTTON -------- */
+/* BUTTON */
 .stButton button {
     background: linear-gradient(135deg, #38bdf8, #0ea5e9);
     color: black;
@@ -67,7 +65,7 @@ body, .stApp {
     padding: 10px 20px;
 }
 
-/* -------- ALERT BANNER -------- */
+/* ALERTS */
 .alert {
     padding: 18px;
     border-radius: 14px;
@@ -82,8 +80,11 @@ body, .stApp {
 .alert-success {
     background: linear-gradient(135deg, #064e3b, #22c55e);
 }
+.alert-info {
+    background: linear-gradient(135deg, #0c4a6e, #0284c7);
+}
 
-/* -------- TOAST FIX -------- */
+/* TOAST */
 div[data-testid="stToast"] {
     background-color: #38bdf8 !important;
 }
@@ -91,7 +92,6 @@ div[data-testid="stToast"] * {
     color: black !important;
     font-weight: 800;
 }
-
 </style>
 """, unsafe_allow_html=True)
 
@@ -100,8 +100,8 @@ st.markdown("""
 <div class="hero">
     <h1>🪖 AI-Based Helmet Detection System</h1>
     <p>
-        Real-time computer vision system to detect helmet usage using deep learning (YOLO).
-        Designed for smart traffic monitoring and road safety enforcement.
+        Deep Learning–based traffic surveillance system to detect helmet violations
+        using YOLO. Designed for Smart City and road safety applications.
     </p>
 </div>
 """, unsafe_allow_html=True)
@@ -141,36 +141,58 @@ if option == "Image Upload":
         results = model(img_array)
         annotated = results[0].plot()
 
-        st.image(annotated, caption="Detection Output", use_container_width=True)
+        st.image(
+            annotated,
+            caption="Detection Output",
+            use_container_width=True
+        )
 
-        helmet_detected = False
-        no_helmet_detected = False
+        helmet_count = 0
+        no_helmet_count = 0
+        rider_detected = False
 
         if results[0].boxes is not None:
             for cls_id in results[0].boxes.cls.tolist():
                 class_name = model.names[int(cls_id)].lower()
 
+                # rider presence
+                if any(x in class_name for x in ["person", "bike", "motorcycle", "rider"]):
+                    rider_detected = True
+
+                # helmet logic
                 if "without" in class_name or "no helmet" in class_name:
-                    no_helmet_detected = True
+                    no_helmet_count += 1
+                    rider_detected = True
                 elif "helmet" in class_name:
-                    helmet_detected = True
+                    helmet_count += 1
+                    rider_detected = True
 
-        if no_helmet_detected:
+        # ================= ALERT LOGIC =================
+        if no_helmet_count > 0:
             st.markdown(
-                "<div class='alert alert-danger'>🚨 ALERT: Rider without Helmet Detected</div>",
+                f"<div class='alert alert-danger'>🚨 {no_helmet_count} Rider(s) Without Helmet Detected</div>",
                 unsafe_allow_html=True
             )
-            st.toast("🚨 Helmet NOT detected!", icon="🚨")
+            st.toast("🚨 Helmet violation detected!", icon="🚨")
 
-        elif helmet_detected:
+        elif helmet_count > 0:
             st.markdown(
-                "<div class='alert alert-success'>✅ Helmet Detected — Rider is Safe</div>",
+                f"<div class='alert alert-success'>✅ {helmet_count} Rider(s) Wearing Helmet</div>",
                 unsafe_allow_html=True
             )
-            st.toast("✅ Helmet detected", icon="🪖")
+            st.toast("✅ All riders are safe", icon="🪖")
+
+        elif rider_detected:
+            st.markdown(
+                "<div class='alert alert-info'>ℹ️ Rider detected, helmet unclear</div>",
+                unsafe_allow_html=True
+            )
 
         else:
-            st.info("ℹ️ No rider detected")
+            st.markdown(
+                "<div class='alert alert-info'>ℹ️ No traffic participants detected</div>",
+                unsafe_allow_html=True
+            )
 
     st.markdown("</div>", unsafe_allow_html=True)
 
