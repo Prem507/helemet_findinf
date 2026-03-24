@@ -18,7 +18,7 @@ st.set_page_config(
 
 # Title
 st.markdown("<h1 style='text-align: center;'>🪖 Helmet Detection System</h1>", unsafe_allow_html=True)
-st.markdown("<p style='text-align: center; color: gray;'>YOLOv8 Based AI Safety Monitoring</p>", unsafe_allow_html=True)
+st.markdown("<p style='text-align: center; color: gray;'>YOLOv5 Based AI Safety Monitoring</p>", unsafe_allow_html=True)
 
 # Load model safely
 @st.cache_resource
