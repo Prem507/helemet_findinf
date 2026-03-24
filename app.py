@@ -18,7 +18,7 @@ st.set_page_config(
 
 # Title
 st.markdown("<h1 style='text-align: center;'>🪖 Helmet Detection System</h1>", unsafe_allow_html=True)
-st.markdown("<p style='text-align: center; color: gray;'>YOLOv5 Based AI Safety Monitoring</p>", unsafe_allow_html=True)
+st.markdown("<p style='text-align: center; color: gray;'>YOLOv8 Based AI Safety Monitoring</p>", unsafe_allow_html=True)
 
 # Load model safely
 @st.cache_resource
@@ -59,10 +59,24 @@ if option == "Image":
         status.info("Running detection...")
 
         results = model(img_array, conf=confidence)
-
         annotated = results[0].plot()
 
+        # 🔴 ALERT LOGIC
+        no_helmet_detected = False
+
+        for box in results[0].boxes:
+            cls = int(box.cls[0])
+            if cls == 1:  # ⚠️ Change if your class index is different
+                no_helmet_detected = True
+
         frame_placeholder.image(annotated, channels="BGR")
+
+        if no_helmet_detected:
+            st.error("🚨 ALERT: No Helmet Detected!")
+            st.warning("⚠️ Safety violation found")
+            st.audio("https://www.soundjay.com/buttons/beep-01a.mp3")
+        else:
+            st.success("✅ Helmet detected - Safe")
 
         status.success("Detection completed!")
 
@@ -84,10 +98,22 @@ elif option == "Video":
                 break
 
             results = model(frame, conf=confidence)
-
             annotated_frame = results[0].plot()
 
+            # 🔴 ALERT LOGIC
+            no_helmet_detected = False
+
+            for box in results[0].boxes:
+                cls = int(box.cls[0])
+                if cls == 1:  # ⚠️ Change if needed
+                    no_helmet_detected = True
+
             frame_placeholder.image(annotated_frame, channels="BGR")
+
+            if no_helmet_detected:
+                status.error("🚨 ALERT: No Helmet Detected!")
+            else:
+                status.success("✅ Safe")
 
         cap.release()
         status.success("Video processing completed!")
