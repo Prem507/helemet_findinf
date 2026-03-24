@@ -48,7 +48,7 @@ def show_alert_popup():
 
 # ---------- HEADER ----------
 st.markdown("<h1 style='text-align: center;'>🪖 Helmet Detection System</h1>", unsafe_allow_html=True)
-st.markdown("<p style='text-align: center; color: gray;'>YOLOv8 Based AI Safety Monitoring</p>", unsafe_allow_html=True)
+st.markdown("<p style='text-align: center; color: gray;'>YOLOv5 Based AI Safety Monitoring</p>", unsafe_allow_html=True)
 
 # ---------- LOAD MODEL ----------
 @st.cache_resource
