@@ -17,23 +17,13 @@ st.set_page_config(
 )
 
 # ---------- SESSION STATE ----------
-if "alert_closed" not in st.session_state:
-    st.session_state.alert_closed = False
+if "show_popup" not in st.session_state:
+    st.session_state.show_popup = False
 
 # ---------- POPUP FUNCTION ----------
 def show_alert_popup():
     st.markdown("""
         <style>
-        .popup-overlay {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background-color: rgba(0,0,0,0.6);
-            z-index: 9998;
-        }
-
         .popup-box {
             position: fixed;
             top: 50%;
@@ -48,28 +38,13 @@ def show_alert_popup():
             text-align: center;
             font-size: 22px;
         }
-
-        .close-btn {
-            position: absolute;
-            top: 10px;
-            right: 15px;
-            font-size: 22px;
-            cursor: pointer;
-            color: red;
-        }
         </style>
-
-        <div id="popup">
-            <div class="popup-overlay"></div>
-
-            <div class="popup-box">
-                <span class="close-btn" onclick="document.getElementById('popup').style.display='none'">❌</span>
-                🚨 <b>ALERT!</b><br><br>
-                No Helmet Detected<br>
-                ⚠️ Please wear a helmet
-            </div>
-        </div>
     """, unsafe_allow_html=True)
+
+    st.markdown('<div class="popup-box">🚨 ALERT!<br>No Helmet Detected<br><br></div>', unsafe_allow_html=True)
+
+    if st.button("❌ Close Alert"):
+        st.session_state.show_popup = False
 
 # ---------- HEADER ----------
 st.markdown("<h1 style='text-align: center;'>🪖 Helmet Detection System</h1>", unsafe_allow_html=True)
@@ -126,8 +101,9 @@ if option == "Image":
 
         frame_placeholder.image(annotated, channels="BGR")
 
+        # Trigger popup
         if no_helmet_detected:
-            show_alert_popup()
+            st.session_state.show_popup = True
             st.audio("https://www.soundjay.com/buttons/beep-01a.mp3")
         else:
             st.success("✅ Helmet detected - Safe")
@@ -165,10 +141,14 @@ elif option == "Video":
             frame_placeholder.image(annotated_frame, channels="BGR")
 
             if no_helmet_detected:
-                show_alert_popup()
+                st.session_state.show_popup = True
                 status.error("🚨 No Helmet Detected!")
             else:
                 status.success("✅ Safe")
 
         cap.release()
         status.success("Video processing completed!")
+
+# ---------- SHOW POPUP ----------
+if st.session_state.show_popup:
+    show_alert_popup()
