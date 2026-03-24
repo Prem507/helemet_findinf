@@ -6,13 +6,19 @@ import os
 from PIL import Image
 import numpy as np
 
-# Fix torch issue
+# Fix torch/OpenMP issue
 os.environ["KMP_DUPLICATE_LIB_OK"] = "TRUE"
 
-# Page config
-st.set_page_config(page_title="Helmet Detection", layout="wide")
+# Page settings
+st.set_page_config(
+    page_title="Helmet Detection System",
+    page_icon="🪖",
+    layout="wide"
+)
 
-st.title("🪖 Helmet Detection System")
+# Title
+st.markdown("<h1 style='text-align: center;'>🪖 Helmet Detection System</h1>", unsafe_allow_html=True)
+st.markdown("<p style='text-align: center; color: gray;'>YOLOv8 Based AI Safety Monitoring</p>", unsafe_allow_html=True)
 
 # Load model safely
 @st.cache_resource
@@ -21,8 +27,24 @@ def load_model():
 
 model = load_model()
 
-# Mode selection
-option = st.radio("Select Input Type", ["Image", "Video"])
+# Sidebar
+st.sidebar.title("⚙️ Controls")
+option = st.sidebar.radio("Select Input Type", ["Image", "Video"])
+confidence = st.sidebar.slider("Confidence", 0.1, 1.0, 0.5)
+
+st.sidebar.markdown("---")
+st.sidebar.info("Upload image or video to detect helmet usage")
+
+# Layout
+col1, col2 = st.columns([2, 1])
+
+with col1:
+    st.subheader("📹 Detection Output")
+    frame_placeholder = st.empty()
+
+with col2:
+    st.subheader("📊 Info")
+    status = st.empty()
 
 # ---------------- IMAGE ----------------
 if option == "Image":
@@ -30,46 +52,42 @@ if option == "Image":
 
     if uploaded_image is not None:
         image = Image.open(uploaded_image)
-        st.image(image, caption="Uploaded Image", use_column_width=True)
+        st.image(image, caption="Original Image", use_column_width=True)
 
         img_array = np.array(image)
 
-        # Run detection
-        results = model(img_array)
+        status.info("Running detection...")
 
-        # Draw results
+        results = model(img_array, conf=confidence)
+
         annotated = results[0].plot()
 
-        st.image(annotated, caption="Detected Output", channels="BGR")
+        frame_placeholder.image(annotated, channels="BGR")
+
+        status.success("Detection completed!")
 
 # ---------------- VIDEO ----------------
 elif option == "Video":
     uploaded_video = st.file_uploader("Upload Video", type=["mp4", "avi", "mov"])
 
     if uploaded_video is not None:
-        st.success("Video uploaded successfully!")
-
         tfile = tempfile.NamedTemporaryFile(delete=False)
         tfile.write(uploaded_video.read())
 
         cap = cv2.VideoCapture(tfile.name)
 
-        stframe = st.empty()
-        st.info("Processing video...")
+        status.info("Processing video...")
 
         while cap.isOpened():
             ret, frame = cap.read()
             if not ret:
                 break
 
-            # Run detection
-            results = model(frame)
+            results = model(frame, conf=confidence)
 
-            # Draw results
             annotated_frame = results[0].plot()
 
-            # Display
-            stframe.image(annotated_frame, channels="BGR")
+            frame_placeholder.image(annotated_frame, channels="BGR")
 
         cap.release()
-        st.success("Processing complete!")
+        status.success("Video processing completed!")
