@@ -9,25 +9,59 @@ import numpy as np
 # Fix torch/OpenMP issue
 os.environ["KMP_DUPLICATE_LIB_OK"] = "TRUE"
 
-# Page settings
+# Page config
 st.set_page_config(
     page_title="Helmet Detection System",
     page_icon="🪖",
     layout="wide"
 )
 
-# Title
+# ---------- POPUP FUNCTION ----------
+def show_alert_popup():
+    st.markdown("""
+        <style>
+        .popup {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background-color: #111;
+            color: white;
+            padding: 30px;
+            border-radius: 15px;
+            box-shadow: 0px 0px 25px red;
+            z-index: 9999;
+            text-align: center;
+            font-size: 22px;
+            animation: blink 1s infinite;
+        }
+
+        @keyframes blink {
+            0% { box-shadow: 0 0 10px red; }
+            50% { box-shadow: 0 0 30px red; }
+            100% { box-shadow: 0 0 10px red; }
+        }
+        </style>
+
+        <div class="popup">
+            🚨 <b>ALERT!</b><br><br>
+            No Helmet Detected<br>
+            ⚠️ Please wear a helmet
+        </div>
+    """, unsafe_allow_html=True)
+
+# ---------- HEADER ----------
 st.markdown("<h1 style='text-align: center;'>🪖 Helmet Detection System</h1>", unsafe_allow_html=True)
 st.markdown("<p style='text-align: center; color: gray;'>YOLOv8 Based AI Safety Monitoring</p>", unsafe_allow_html=True)
 
-# Load model safely
+# ---------- LOAD MODEL ----------
 @st.cache_resource
 def load_model():
     return YOLO("best.pt")
 
 model = load_model()
 
-# Sidebar
+# ---------- SIDEBAR ----------
 st.sidebar.title("⚙️ Controls")
 option = st.sidebar.radio("Select Input Type", ["Image", "Video"])
 confidence = st.sidebar.slider("Confidence", 0.1, 1.0, 0.5)
@@ -35,7 +69,7 @@ confidence = st.sidebar.slider("Confidence", 0.1, 1.0, 0.5)
 st.sidebar.markdown("---")
 st.sidebar.info("Upload image or video to detect helmet usage")
 
-# Layout
+# ---------- LAYOUT ----------
 col1, col2 = st.columns([2, 1])
 
 with col1:
@@ -46,7 +80,7 @@ with col2:
     st.subheader("📊 Info")
     status = st.empty()
 
-# ---------------- IMAGE ----------------
+# ---------- IMAGE ----------
 if option == "Image":
     uploaded_image = st.file_uploader("Upload Image", type=["jpg", "jpeg", "png"])
 
@@ -61,26 +95,25 @@ if option == "Image":
         results = model(img_array, conf=confidence)
         annotated = results[0].plot()
 
-        # 🔴 ALERT LOGIC
+        # ALERT LOGIC
         no_helmet_detected = False
 
         for box in results[0].boxes:
             cls = int(box.cls[0])
-            if cls == 1:  # ⚠️ Change if your class index is different
+            if cls == 1:   # ⚠️ change if your class index differs
                 no_helmet_detected = True
 
         frame_placeholder.image(annotated, channels="BGR")
 
         if no_helmet_detected:
-            st.error("🚨 ALERT: No Helmet Detected!")
-            st.warning("⚠️ Safety violation found")
+            show_alert_popup()
             st.audio("https://www.soundjay.com/buttons/beep-01a.mp3")
         else:
             st.success("✅ Helmet detected - Safe")
 
         status.success("Detection completed!")
 
-# ---------------- VIDEO ----------------
+# ---------- VIDEO ----------
 elif option == "Video":
     uploaded_video = st.file_uploader("Upload Video", type=["mp4", "avi", "mov"])
 
@@ -100,18 +133,19 @@ elif option == "Video":
             results = model(frame, conf=confidence)
             annotated_frame = results[0].plot()
 
-            # 🔴 ALERT LOGIC
+            # ALERT LOGIC
             no_helmet_detected = False
 
             for box in results[0].boxes:
                 cls = int(box.cls[0])
-                if cls == 1:  # ⚠️ Change if needed
+                if cls == 1:
                     no_helmet_detected = True
 
             frame_placeholder.image(annotated_frame, channels="BGR")
 
             if no_helmet_detected:
-                status.error("🚨 ALERT: No Helmet Detected!")
+                show_alert_popup()
+                status.error("🚨 No Helmet Detected!")
             else:
                 status.success("✅ Safe")
 
