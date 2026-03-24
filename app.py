@@ -6,7 +6,7 @@ import os
 from PIL import Image
 import numpy as np
 
-# Fix torch/OpenMP issue
+# Fix torch issue
 os.environ["KMP_DUPLICATE_LIB_OK"] = "TRUE"
 
 # Page config
@@ -16,11 +16,25 @@ st.set_page_config(
     layout="wide"
 )
 
+# ---------- SESSION STATE ----------
+if "alert_closed" not in st.session_state:
+    st.session_state.alert_closed = False
+
 # ---------- POPUP FUNCTION ----------
 def show_alert_popup():
     st.markdown("""
         <style>
-        .popup {
+        .popup-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0,0,0,0.6);
+            z-index: 9998;
+        }
+
+        .popup-box {
             position: fixed;
             top: 50%;
             left: 50%;
@@ -33,20 +47,27 @@ def show_alert_popup():
             z-index: 9999;
             text-align: center;
             font-size: 22px;
-            animation: blink 1s infinite;
         }
 
-        @keyframes blink {
-            0% { box-shadow: 0 0 10px red; }
-            50% { box-shadow: 0 0 30px red; }
-            100% { box-shadow: 0 0 10px red; }
+        .close-btn {
+            position: absolute;
+            top: 10px;
+            right: 15px;
+            font-size: 22px;
+            cursor: pointer;
+            color: red;
         }
         </style>
 
-        <div class="popup">
-            🚨 <b>ALERT!</b><br><br>
-            No Helmet Detected<br>
-            ⚠️ Please wear a helmet
+        <div id="popup">
+            <div class="popup-overlay"></div>
+
+            <div class="popup-box">
+                <span class="close-btn" onclick="document.getElementById('popup').style.display='none'">❌</span>
+                🚨 <b>ALERT!</b><br><br>
+                No Helmet Detected<br>
+                ⚠️ Please wear a helmet
+            </div>
         </div>
     """, unsafe_allow_html=True)
 
@@ -100,7 +121,7 @@ if option == "Image":
 
         for box in results[0].boxes:
             cls = int(box.cls[0])
-            if cls == 1:   # ⚠️ change if your class index differs
+            if cls == 1:  # ⚠️ change if needed
                 no_helmet_detected = True
 
         frame_placeholder.image(annotated, channels="BGR")
